@@ -2,6 +2,7 @@ package depthlogger
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"runtime"
 	"time"
@@ -15,36 +16,88 @@ func NewDepthLogger(h slog.Handler) *DepthLogger {
 	return &DepthLogger{slog.New(h)}
 }
 
+func (o *DepthLogger) Debugf(msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelDebug, 1, msg, args...)
+}
+
 func (o *DepthLogger) DebugDepth(msg string, skip int, args ...any) {
 	o.LogDepth(context.Background(), slog.LevelDebug, skip+1, msg, args...)
 }
 
-func (o *DepthLogger) DebugDepthContext(ctx context.Context, skip int, msg string, args ...any) {
+func (o *DepthLogger) DebugDepthf(msg string, skip int, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelDebug, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) DebugContextDepth(ctx context.Context, skip int, msg string, args ...any) {
 	o.LogDepth(ctx, slog.LevelDebug, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) DebugContextDepthf(ctx context.Context, skip int, msg string, args ...any) {
+	o.LogDepthf(ctx, slog.LevelDebug, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) Infof(msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelInfo, 1, msg, args...)
 }
 
 func (o *DepthLogger) InfoDepthDepth(skip int, msg string, args ...any) {
 	o.LogDepth(context.Background(), slog.LevelInfo, skip+1, msg, args...)
 }
 
-func (o *DepthLogger) InfoDepthContext(ctx context.Context, skip int, msg string, args ...any) {
+func (o *DepthLogger) InfoDepthDepthf(skip int, msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelInfo, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) InfoContextDepth(ctx context.Context, skip int, msg string, args ...any) {
 	o.LogDepth(ctx, slog.LevelInfo, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) InfoContextDepthf(ctx context.Context, skip int, msg string, args ...any) {
+	o.LogDepthf(ctx, slog.LevelInfo, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) Warnf(msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelWarn, 1, msg, args...)
 }
 
 func (o *DepthLogger) WarnDepth(skip int, msg string, args ...any) {
 	o.LogDepth(context.Background(), slog.LevelWarn, skip+1, msg, args...)
 }
 
-func (o *DepthLogger) WarnDepthContext(ctx context.Context, skip int, msg string, args ...any) {
+func (o *DepthLogger) WarnDepthf(skip int, msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelWarn, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) WarnContextDepth(ctx context.Context, skip int, msg string, args ...any) {
 	o.LogDepth(ctx, slog.LevelWarn, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) WarnContextDepthf(ctx context.Context, skip int, msg string, args ...any) {
+	o.LogDepthf(ctx, slog.LevelWarn, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) Errorf(msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelError, 1, msg, args...)
 }
 
 func (o *DepthLogger) ErrorDepth(skip int, msg string, args ...any) {
 	o.LogDepth(context.Background(), slog.LevelError, skip+1, msg, args...)
 }
 
-func (o *DepthLogger) ErrorDepthContext(ctx context.Context, skip int, msg string, args ...any) {
+func (o *DepthLogger) ErrorDepthf(skip int, msg string, args ...any) {
+	o.LogDepthf(context.Background(), slog.LevelError, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) ErrorContextDepth(ctx context.Context, skip int, msg string, args ...any) {
 	o.LogDepth(ctx, slog.LevelError, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) ErrorContextDepthf(ctx context.Context, skip int, msg string, args ...any) {
+	o.LogDepthf(ctx, slog.LevelError, skip+1, msg, args...)
+}
+
+func (o *DepthLogger) Logf(ctx context.Context, level slog.Level, msg string, args ...any) {
+	o.LogDepthf(ctx, level, 1, msg, args...)
 }
 
 func (o *DepthLogger) LogDepth(ctx context.Context, level slog.Level, skip int, msg string, args ...any) {
@@ -66,7 +119,7 @@ func (o *DepthLogger) LogDepth(ctx context.Context, level slog.Level, skip int, 
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogAttrsDepth(ctx context.Context, level slog.Level, skip int, msg string, attrs ...slog.Attr) {
+func (o *DepthLogger) LogDepthAttrs(ctx context.Context, level slog.Level, skip int, msg string, attrs ...slog.Attr) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
@@ -85,12 +138,53 @@ func (o *DepthLogger) LogAttrsDepth(ctx context.Context, level slog.Level, skip 
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPc(ctx context.Context, level slog.Level, pc uintptr, msg string, args ...any) {
+func (o *DepthLogger) LogDepthf(ctx context.Context, level slog.Level, skip int, msg string, args ...any) {
+	if !o.Enabled(ctx, level) {
+		return
+	}
+	var pc uintptr
+	{
+		var pcs [1]uintptr
+		// skip [runtime.Callers, this function]
+		runtime.Callers(skip+2, pcs[:])
+		pc = pcs[0]
+	}
+	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(msg, args...), pc)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = o.Handler().Handle(ctx, r)
+}
+
+func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pc uintptr, msg string, args ...any) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
 	r := slog.NewRecord(time.Now(), level, msg, pc)
 	r.Add(args...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = o.Handler().Handle(ctx, r)
+}
+
+func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pc uintptr, msg string, attrs ...slog.Attr) {
+	if !o.Enabled(ctx, level) {
+		return
+	}
+	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r.AddAttrs(attrs...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = o.Handler().Handle(ctx, r)
+}
+
+func (o *DepthLogger) LogPCf(ctx context.Context, level slog.Level, pc uintptr, msg string, args ...any) {
+	if !o.Enabled(ctx, level) {
+		return
+	}
+	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(msg, args...), pc)
 	if ctx == nil {
 		ctx = context.Background()
 	}
