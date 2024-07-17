@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+type PCGetter func() uintptr
+
 type DepthLogger struct {
 	*slog.Logger
 }
@@ -172,11 +174,11 @@ func (o *DepthLogger) LogDepthf(ctx context.Context, level slog.Level, skip int,
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pc uintptr, msg string, args ...any) {
+func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pcf PCGetter, msg string, args ...any) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
-	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r := slog.NewRecord(time.Now(), level, msg, pcf())
 	r.Add(args...)
 	if ctx == nil {
 		ctx = context.Background()
@@ -184,11 +186,11 @@ func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pc uintptr, m
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pc uintptr, msg string, attrs ...slog.Attr) {
+func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pcf PCGetter, msg string, attrs ...slog.Attr) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
-	r := slog.NewRecord(time.Now(), level, msg, pc)
+	r := slog.NewRecord(time.Now(), level, msg, pcf())
 	r.AddAttrs(attrs...)
 	if ctx == nil {
 		ctx = context.Background()
@@ -196,11 +198,11 @@ func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pc uintp
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPCf(ctx context.Context, level slog.Level, pc uintptr, msg string, args ...any) {
+func (o *DepthLogger) LogPCf(ctx context.Context, level slog.Level, pcf PCGetter, msg string, args ...any) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
-	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(msg, args...), pc)
+	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(msg, args...), pcf())
 	if ctx == nil {
 		ctx = context.Background()
 	}
