@@ -8,7 +8,11 @@ import (
 	"time"
 )
 
-type PCGetter func() uintptr
+type PCGetterFunc func() uintptr
+
+type PCGetter interface {
+	GetPC() uintptr
+}
 
 type DepthLogger struct {
 	*slog.Logger
@@ -174,7 +178,7 @@ func (o *DepthLogger) LogDepthf(ctx context.Context, level slog.Level, skip int,
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pcf PCGetter, msg string, args ...any) {
+func (o *DepthLogger) LogPCFunc(ctx context.Context, level slog.Level, pcf PCGetterFunc, msg string, args ...any) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
@@ -186,7 +190,7 @@ func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pcf PCGetter,
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pcf PCGetter, msg string, attrs ...slog.Attr) {
+func (o *DepthLogger) LogPCFuncAttrs(ctx context.Context, level slog.Level, pcf PCGetterFunc, msg string, attrs ...slog.Attr) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
@@ -198,11 +202,46 @@ func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pcf PCGe
 	_ = o.Handler().Handle(ctx, r)
 }
 
-func (o *DepthLogger) LogPCf(ctx context.Context, level slog.Level, pcf PCGetter, msg string, args ...any) {
+func (o *DepthLogger) LogPCFuncf(ctx context.Context, level slog.Level, pcf PCGetterFunc, msg string, args ...any) {
 	if !o.Enabled(ctx, level) {
 		return
 	}
 	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(msg, args...), pcf())
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = o.Handler().Handle(ctx, r)
+}
+
+func (o *DepthLogger) LogPC(ctx context.Context, level slog.Level, pcGetter PCGetter, msg string, args ...any) {
+	if !o.Enabled(ctx, level) {
+		return
+	}
+	r := slog.NewRecord(time.Now(), level, msg, pcGetter.GetPC())
+	r.Add(args...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = o.Handler().Handle(ctx, r)
+}
+
+func (o *DepthLogger) LogPCAttrs(ctx context.Context, level slog.Level, pcGetter PCGetter, msg string, attrs ...slog.Attr) {
+	if !o.Enabled(ctx, level) {
+		return
+	}
+	r := slog.NewRecord(time.Now(), level, msg, pcGetter.GetPC())
+	r.AddAttrs(attrs...)
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	_ = o.Handler().Handle(ctx, r)
+}
+
+func (o *DepthLogger) LogPCf(ctx context.Context, level slog.Level, pcGetter PCGetter, msg string, args ...any) {
+	if !o.Enabled(ctx, level) {
+		return
+	}
+	r := slog.NewRecord(time.Now(), level, fmt.Sprintf(msg, args...), pcGetter.GetPC())
 	if ctx == nil {
 		ctx = context.Background()
 	}
